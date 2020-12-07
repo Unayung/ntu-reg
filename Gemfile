@@ -1,0 +1,10 @@
+source 'https://rubygems.org'
+
+gem 'capybara'
+gem 'capybara-screenshot'
+gem 'cuprite'
+gem 'pry', '~> 0.12.2'
+gem 'pry-byebug'
+gem 'pry-rails'
+gem 'selenium-webdriver'
+gem 'two_captcha'
