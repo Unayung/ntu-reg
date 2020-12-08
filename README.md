@@ -1,4 +1,6 @@
 使用說明:
+ - cp .env.example .env
+ - 修改 .env 符合自己需要
  - ruby reg.rb
 
 .env 說明:
@@ -8,7 +10,7 @@
  - 出生民國月 BMONTH: 11
  - 出生民國日 BDAY: 11
  - 是否全自動化 AUTO: yes / no
- - 是否不跳視窗 HEADLESS: yes
+ - 是否不跳視窗 HEADLESS: yes / no
  - 2Captcha api key TWOCAPTCHA: 123abc123abc123abc
 ---
 # 4834079 馬一心
