@@ -22,7 +22,7 @@ end
 def initialize_services
   Capybara.javascript_driver = :cuprite
   Capybara.register_driver :cuprite do |app|
-    Capybara::Cuprite::Driver.new(app, window_size: [1680, 1040], headless: @headless, browser_options: { 'no-sandbox': nil })
+    Capybara::Cuprite::Driver.new(app, window_size: [1680, 1040], headless: @headless, browser_options: { 'no-sandbox': nil }, process_timeout: 5)
   end
   @session = Capybara::Session.new(:cuprite)
   @session.driver.add_headers({ 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Safari/604.1.38' })
