@@ -6,17 +6,20 @@ require 'pry'
 require 'pry-rails'
 require 'pry-byebug'
 require 'two_captcha'
+require 'yaml'
 
-@doctor_id = ENV['DOCTORID']
-@id_number = ENV['IDNUMBER']
-@b_year    = ENV['BYEAR']
-@b_month   = ENV['BMONTH']
-@b_day     = ENV['BDAY']
-@auto      = ENV['AUTO']
-@headless  = ENV['HEADLESS']
-@client = TwoCaptcha.new(ENV['TWOCAPTCHA']) if @auto == 'yes'
+config       = YAML.safe_load(File.read('.env'))
+@doctor_id   = config['DOCTORID'].to_s
+@id_number   = config['IDNUMBER'].to_s
+@b_year      = config['BYEAR'].to_s
+@b_month     = config['BMONTH'].to_s
+@b_day       = config['BDAY'].to_s
+@auto        = config['AUTO']
+@headless    = config['HEADLESS']
+@two_captcha = config['TWOCAPTCHA']
+@offset      = 0
 
-def initialize_cuprite
+def initialize_services
   Capybara.javascript_driver = :cuprite
   Capybara.register_driver :cuprite do |app|
     Capybara::Cuprite::Driver.new(app, window_size: [1680, 1040], headless: @headless, browser_options: { 'no-sandbox': nil })
@@ -24,6 +27,7 @@ def initialize_cuprite
   @session = Capybara::Session.new(:cuprite)
   @session.driver.add_headers({ 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Safari/604.1.38' })
   @session.driver.add_headers({ 'Accept-Language': 'zh-tw' })
+  @client = TwoCaptcha.new(@two_captcha) if @auto
 end
 
 def input_fill_in
@@ -48,7 +52,7 @@ def manual_solve_captcha
 end
 
 def deal_with_captcha
-  ans = if @auto == 'yes'
+  ans = if @auto
           auto_solve_captcha
         else
           manual_solve_captcha
@@ -78,18 +82,14 @@ def show_first_result
 end
 
 def deal_with_error
-  # @session.save_and_open_screenshot
-  puts '預約失敗'
-  go_to_doctor_page
+  @offset += 1
+  puts '掛號失敗，嘗試下一個可掛號時段'
+  main(false, @offset)
 end
 
 def go_to_doctor_page
   url = "https://reg.ntuh.gov.tw/webadministration/ClinicListUnderSpecificTemplateIDSE.aspx?ServiceIDSE=#{@doctor_id}"
   @session.visit url
-end
-
-def register_table
-  @session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_GridViewDoctorServiceList')
 end
 
 def basic_info
@@ -101,28 +101,39 @@ def basic_info
   puts "出生年月日: #{@b_year} #{@b_month} #{@b_day}"
 end
 
-initialize_cuprite
-go_to_doctor_page
-basic_info
-table_links = register_table.all('a', text: '掛號')
-if table_links.size.positive?
-  table_links.each do |link|
+def reg_info
+  puts "-=-=-= 嘗試預約掛號 -=-=-="
+  puts "時間: #{@session.find('#ShowTime').text}"
+  puts "科別: #{@session.find('#ShowDept').text}"
+  puts "診別: #{@session.find('#ShowClinic').text}"
+  puts "醫事人員: #{@session.find('#ShowDt').text}"
+end
+
+def main(is_first_time, offset)
+  initialize_services if is_first_time
+  basic_info
+  go_to_doctor_page
+  table_links = @session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_GridViewDoctorServiceList').all('a', text: '掛號')
+  if table_links.size.positive? && offset < table_links.size
+    link = table_links[offset]
     link.click
-    sleep(0.2)
+    reg_info
+    sleep(0.3)
     input_fill_in
-    sleep(0.2)
     deal_with_captcha
     @session.find('input#btnOK').click
     if @session.has_selector?('#showResult')
       show_result
-      break
     elsif @session.has_selector?('#palPatBaseP1')
       show_first_result
-      break
     else
       deal_with_error
     end
+  elsif table_links.size.positive? && offset = table_links.size
+    puts "已嘗試所有可掛號時段，無法完成預約掛號"
+  else
+    puts @session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_GridViewDoctorServiceList').all('tr').last.all('td')[0].text
   end
-else
-  puts register_table.all('tr').last.all('td')[0].text
 end
+
+main(true, @offset)
