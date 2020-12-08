@@ -47,7 +47,7 @@ end
 def manual_solve_captcha
   File.write("./tmp/#{ENV['IDNUMBER']}_#{ENV['DOCTORID']}.png", URI.parse(@session.find('#imgVlid')['src']).open.read)
   `open "./tmp/#{ENV['IDNUMBER']}_#{ENV['DOCTORID']}.png"`
-  puts '請輸入驗證碼六碼並按 enter'
+  puts '請輸入驗證碼六碼並按 Enter'
   $stdin.gets
 end
 
@@ -102,11 +102,11 @@ def basic_info
 end
 
 def reg_info
-  puts "-=-=-= 嘗試預約掛號 -=-=-="
+  puts '-=-=-= 嘗試預約掛號 -=-=-='
   puts "時間: #{@session.find('#ShowTime').text}"
   puts "科別: #{@session.find('#ShowDept').text}"
   puts "診別: #{@session.find('#ShowClinic').text}"
-  puts "醫事人員: #{@session.find('#ShowDt').text}"
+  puts "醫師: #{@session.find('#ShowDt').text}"
 end
 
 def main(is_first_time, offset)
@@ -129,8 +129,8 @@ def main(is_first_time, offset)
     else
       deal_with_error
     end
-  elsif table_links.size.positive? && offset = table_links.size
-    puts "已嘗試所有可掛號時段，無法完成預約掛號"
+  elsif table_links.size.positive? && offset == table_links.size
+    puts '已嘗試所有可掛號時段，無法完成預約掛號'
   else
     puts "無可掛號時段或#{@session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_GridViewDoctorServiceList').all('tr').last.all('td')[0].text}"
   end
