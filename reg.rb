@@ -7,19 +7,19 @@ require 'pry-rails'
 require 'pry-byebug'
 require 'two_captcha'
 
-@doctor_id = ARGV[0].to_s
-@id_number = ARGV[1].to_s
-@b_year    = ARGV[2].to_s
-@b_month   = ARGV[3].to_s
-@b_day     = ARGV[4].to_s
-@auto      = ARGV[5].to_s
-@headless  = ARGV[6].to_s
-@client = TwoCaptcha.new('1c32518f5e981ae6c5fa665dc66429f6') if @auto == 'yes'
+@doctor_id = ENV['DOCTORID']
+@id_number = ENV['IDNUMBER']
+@b_year    = ENV['BYEAR']
+@b_month   = ENV['BMONTH']
+@b_day     = ENV['BDAY']
+@auto      = ENV['AUTO']
+@headless  = ENV['HEADLESS']
+@client = TwoCaptcha.new(ENV['TWOCAPTCHA']) if @auto == 'yes'
 
 def initialize_cuprite
   Capybara.javascript_driver = :cuprite
   Capybara.register_driver :cuprite do |app|
-    Capybara::Cuprite::Driver.new(app, window_size: [1680, 1040], headless: @headless)
+    Capybara::Cuprite::Driver.new(app, window_size: [1680, 1040], headless: @headless, browser_options: { 'no-sandbox': nil })
   end
   @session = Capybara::Session.new(:cuprite)
   @session.driver.add_headers({ 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Safari/604.1.38' })
@@ -94,7 +94,7 @@ end
 
 def basic_info
   [@id_number, @b_year, @b_month, @b_day].each do |info|
-    abort('Fail: 基本資料未填') if info.empty?
+    abort('Fail: 基本資料未填') if info.nil?
   end
 
   puts "身份證字號: #{@id_number}"
