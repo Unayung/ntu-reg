@@ -8,16 +8,16 @@ require 'pry-byebug'
 require 'two_captcha'
 require 'yaml'
 
-config       = YAML.safe_load(File.read('.env'))
-@doctor_id   = config['DOCTORID'].to_s
-@id_number   = config['IDNUMBER'].to_s
-@b_year      = config['BYEAR'].to_s
-@b_month     = config['BMONTH'].to_s
-@b_day       = config['BDAY'].to_s
-@auto        = config['AUTO']
-@headless    = config['HEADLESS']
-@two_captcha = config['TWOCAPTCHA']
-@offset      = 0
+if File.exist?('.env')
+  config = YAML.safe_load(File.read('.env'))
+  config.each do |k, v|
+    ENV[k] = v.to_s
+  end
+end
+
+@headless = ENV['HEADLESS'] == 'true'
+@auto = ENV['AUTO'] == 'true'
+@offset = 0
 
 def initialize_services
   Capybara.javascript_driver = :cuprite
@@ -27,15 +27,15 @@ def initialize_services
   @session = Capybara::Session.new(:cuprite)
   @session.driver.add_headers({ 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13) AppleWebKit/604.1.38 (KHTML, like Gecko) Version/11.0 Safari/604.1.38' })
   @session.driver.add_headers({ 'Accept-Language': 'zh-tw' })
-  @client = TwoCaptcha.new(@two_captcha) if @auto
+  @client = TwoCaptcha.new(ENV['TWOCAPTCHA']) if @auto
 end
 
 def input_fill_in
   @session.find('#radInputNum_1').click
-  @session.find('#txtIdno').fill_in(with: @id_number)
-  @session.find('#ddlBirthYear').select(@b_year)
-  @session.find('#ddlBirthMonth').select(@b_month)
-  @session.find('#ddlBirthDay').select(@b_day)
+  @session.find('#txtIdno').fill_in(with: ENV['IDNUMBER'])
+  @session.find('#ddlBirthYear').select(ENV['BYEAR'])
+  @session.find('#ddlBirthMonth').select(ENV['BMONTH'])
+  @session.find('#ddlBirthDay').select(ENV['BDAY'])
 end
 
 def auto_solve_captcha
@@ -45,8 +45,8 @@ def auto_solve_captcha
 end
 
 def manual_solve_captcha
-  File.write("./tmp/#{@id_number}_#{@doctor_id}.png", URI.parse(@session.find('#imgVlid')['src']).open.read)
-  `open "./tmp/#{@id_number}_#{@doctor_id}.png"`
+  File.write("./tmp/#{ENV['IDNUMBER']}_#{ENV['DOCTORID']}.png", URI.parse(@session.find('#imgVlid')['src']).open.read)
+  `open "./tmp/#{ENV['IDNUMBER']}_#{ENV['DOCTORID']}.png"`
   puts '請輸入驗證碼六碼並按 enter'
   $stdin.gets
 end
@@ -88,17 +88,17 @@ def deal_with_error
 end
 
 def go_to_doctor_page
-  url = "https://reg.ntuh.gov.tw/webadministration/ClinicListUnderSpecificTemplateIDSE.aspx?ServiceIDSE=#{@doctor_id}"
+  url = "https://reg.ntuh.gov.tw/webadministration/ClinicListUnderSpecificTemplateIDSE.aspx?ServiceIDSE=#{ENV['DOCTORID']}"
   @session.visit url
 end
 
 def basic_info
-  [@id_number, @b_year, @b_month, @b_day].each do |info|
+  [ENV['IDNUMBER'], ENV['BYEAR'], ENV['BMONTH'], ENV['BDAY']].each do |info|
     abort('Fail: 基本資料未填') if info.nil?
   end
 
-  puts "身份證字號: #{@id_number}"
-  puts "出生年月日: #{@b_year} #{@b_month} #{@b_day}"
+  puts "身份證字號: #{ENV['IDNUMBER']}"
+  puts "出生年月日: #{ENV['BYEAR']} #{ENV['BMONTH']} #{ENV['BDAY']}"
 end
 
 def reg_info
@@ -132,7 +132,7 @@ def main(is_first_time, offset)
   elsif table_links.size.positive? && offset = table_links.size
     puts "已嘗試所有可掛號時段，無法完成預約掛號"
   else
-    puts @session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_GridViewDoctorServiceList').all('tr').last.all('td')[0].text
+    puts "無可掛號時段或#{@session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_GridViewDoctorServiceList').all('tr').last.all('td')[0].text}"
   end
 end
 
