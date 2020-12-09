@@ -1,6 +1,7 @@
 require 'capybara'
 require 'capybara-screenshot'
 require 'capybara/cuprite'
+require 'httparty'
 require 'open-uri'
 require 'pry'
 require 'pry-rails'
@@ -8,16 +9,30 @@ require 'pry-byebug'
 require 'two_captcha'
 require 'yaml'
 
-if File.exist?('.env')
+def sleep_for_a_while
+  sec = rand(5..10)
+  puts "休息 #{sec} 秒..."
+  sleep(sec)
+end
+
+def load_env
+  return unless File.exist?('.env')
+
   config = YAML.safe_load(File.read('.env'))
   config.each do |k, v|
     ENV[k] = v.to_s
   end
+  @headless     = ENV['HEADLESS'] == 'true'
+  @auto         = ENV['AUTO'] == 'true'
+  @tg_bot_token = ENV['TGBOTTOKEN']
+  @channel_id   = ENV['TGCHANNELID']
 end
 
-@headless = ENV['HEADLESS'] == 'true'
-@auto = ENV['AUTO'] == 'true'
-@offset = 0
+def send_tg_message(msg)
+  encoded_msg = CGI.escape(msg)
+  url = "https://api.telegram.org/bot#{@tg_bot_token}/sendMessage?chat_id=#{@channel_id}&text=#{encoded_msg}"
+  HTTParty.get(url)
+end
 
 def initialize_services
   Capybara.javascript_driver = :cuprite
@@ -62,29 +77,37 @@ rescue Exception => e
   abort("Fail: #{e}")
 end
 
+def after_success(msg)
+  puts msg
+  send_tg_message(msg)
+  @success = true
+end
+
 def show_result
-  puts '掛號成功'
-  puts "姓名: #{@session.find('#ShowResult').all('tr')[0].all('td')[1].text}"
-  puts "時間: #{@session.find('#ShowResult').all('tr')[1].all('td')[1].text}"
-  puts "科別: #{@session.find('#ShowResult').all('tr')[3].all('td')[1].text}"
-  puts "診別: #{@session.find('#ShowResult').all('tr')[4].all('td')[1].text}"
-  puts "醫師: #{@session.find('#ShowResult').all('tr')[5].all('td')[1].text}"
-  puts "診號: #{@session.find('#ShowResult').all('tr')[6].all('td')[1].text}"
-  puts "看診地點: #{@session.find('#ShowResult').all('tr')[9].all('td')[1].text}"
+  show_name = "姓名: #{@session.find('#ShowResult').all('tr')[0].all('td')[1].text}"
+  show_time = "時間: #{@session.find('#ShowResult').all('tr')[1].all('td')[1].text}"
+  show_dept = "科別: #{@session.find('#ShowResult').all('tr')[3].all('td')[1].text}"
+  show_clinic = "診別: #{@session.find('#ShowResult').all('tr')[4].all('td')[1].text}"
+  show_dt = "醫師: #{@session.find('#ShowResult').all('tr')[5].all('td')[1].text}"
+  show_num = "診號: #{@session.find('#ShowResult').all('tr')[6].all('td')[1].text}"
+  show_loc = "看診地點: #{@session.find('#ShowResult').all('tr')[9].all('td')[1].text}"
+  msg = "掛號成功\n#{show_name}\n#{show_time}\n#{show_dept}\n#{show_clinic}\n#{show_dt}\n#{show_num}\n#{show_loc}"
+  after_success(msg)
 end
 
 def show_first_result
-  puts '初診身份掛號成功，請至查詢系統查詢診號'
-  puts "時間: #{@session.find('#ShowTime').text}"
-  puts "科別: #{@session.find('#ShowDept').text}"
-  puts "診別: #{@session.find('#ShowClinic').text}"
-  puts "醫師: #{@session.find('#ShowDt').text}"
+  show_time = "時間: #{@session.find('#ShowTime').text}"
+  show_dept = "科別: #{@session.find('#ShowDept').text}"
+  show_clinic = "診別: #{@session.find('#ShowClinic').text}"
+  show_dt = "醫師: #{@session.find('#ShowDt').text}"
+  msg = "初診身份掛號成功，請至查詢系統查詢診號\n#{show_time}\n#{show_dept}\n#{show_clinic}\n#{show_dt}"
+  after_success(msg)
 end
 
 def deal_with_error
-  @offset += 1
   puts '掛號失敗，嘗試下一個可掛號時段'
-  main(false, @offset)
+  sleep_for_a_while
+  main(false, @offset += 1)
 end
 
 def go_to_doctor_page
@@ -110,16 +133,19 @@ def reg_info
 end
 
 def main(is_first_time, offset)
-  initialize_services if is_first_time
-  basic_info
+  if is_first_time
+    load_env
+    initialize_services
+    basic_info
+  end
   go_to_doctor_page
   table_links = @session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_GridViewDoctorServiceList').all('a', text: '掛號')
   if table_links.size.positive? && offset < table_links.size
     link = table_links[offset]
     link.click
-    sleep(0.3)
+    sleep(0.5)
     reg_info
-    sleep(0.3)
+    sleep(0.5)
     input_fill_in
     deal_with_captcha
     @session.find('input#btnOK').click
@@ -137,4 +163,17 @@ def main(is_first_time, offset)
   end
 end
 
-main(true, @offset)
+@offset  = 0
+@success = false
+@loop    = ENV['LOOP'] == 'true'
+
+if @loop
+  until @success
+    puts '!!! 無限執行模式 !!!'
+    main(true, @offset)
+    sleep_for_a_while
+  end
+else
+  puts '--- 單次執行模式 ---'
+  main(true, @offset)
+end
