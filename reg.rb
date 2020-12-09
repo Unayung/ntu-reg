@@ -181,8 +181,13 @@ set_env
 if @loop
   puts '!!! 無限執行模式 !!!'
   until @success
-    main(true, @offset)
-    sleep_for_a_while(rand(ENV['SLEEPMIN'].to_i..ENV['SLEEPMAX'].to_i))
+    begin
+      main(true, @offset)
+      sleep_for_a_while(rand(ENV['SLEEPMIN'].to_i..ENV['SLEEPMAX'].to_i))
+    rescue => e
+      puts "Exception: #{e.to_s}"
+      sleep_for_a_while(rand(ENV['SLEEPMIN'].to_i..ENV['SLEEPMAX'].to_i))
+    end
   end
 else
   puts '--- 單次執行模式 ---'
