@@ -178,8 +178,8 @@ load_env
 set_env
 
 if @loop
+  puts '!!! 無限執行模式 !!!'
   until @success
-    puts '!!! 無限執行模式 !!!'
     main(true, @offset)
     sleep_for_a_while(rand(ENV['SLEEPMIN'].to_i..ENV['SLEEPMAX'].to_i))
   end
