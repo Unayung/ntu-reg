@@ -117,6 +117,7 @@ def main(is_first_time, offset)
   if table_links.size.positive? && offset < table_links.size
     link = table_links[offset]
     link.click
+    sleep(0.3)
     reg_info
     sleep(0.3)
     input_fill_in
