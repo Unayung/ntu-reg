@@ -113,7 +113,7 @@ end
 def deal_with_error
   puts '掛號失敗，嘗試下一個可掛號時段'
   sleep_for_a_while(rand(ENV['SLEEPMIN'].to_i..ENV['SLEEPMAX'].to_i))
-  main(false, @offset += 1)
+  main(@offset += 1)
 end
 
 def go_to_doctor_page
@@ -148,11 +148,7 @@ def doctor_info
   end
 end
 
-def main(is_first_time, offset)
-  if is_first_time
-    initialize_services
-    basic_info
-  end
+def main(offset)
   go_to_doctor_page
   doctor_info
   table_links = @session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_GridViewDoctorServiceList').all('a', text: '掛號')
@@ -181,12 +177,14 @@ end
 
 load_env
 set_env
+initialize_services
 
 if @loop
-  puts '!!! 無限執行模式 !!!'
+  puts '--- !!! 無限執行模式 !!! ---'
+  basic_info
   until @success
     begin
-      main(true, @offset)
+      main(@offset)
       sleep_for_a_while(rand(ENV['SLEEPMIN'].to_i..ENV['SLEEPMAX'].to_i))
     rescue => e
       puts "Exception: #{e.to_s}"
@@ -195,5 +193,6 @@ if @loop
   end
 else
   puts '--- 單次執行模式 ---'
-  main(true, @offset)
+  basic_info
+  main(@offset)
 end
