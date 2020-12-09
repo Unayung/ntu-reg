@@ -20,8 +20,10 @@ def load_env
   config = YAML.safe_load(File.read('.env'))
   config.each do |k, v|
     ENV[k] = v.to_s
-    puts "ENV['#{k}']: #{v.to_s}"
   end
+end
+
+def set_env
   @headless     = ENV['HEADLESS'] == 'true'
   @auto         = ENV['AUTO'] == 'true'
   @loop         = ENV['LOOP'] == 'true'
@@ -109,7 +111,7 @@ end
 
 def deal_with_error
   puts '掛號失敗，嘗試下一個可掛號時段'
-  sleep_for_a_while(rand(6..10))
+  sleep_for_a_while(rand(ENV['SLEEPMIN'].to_i..ENV['SLEEPMAX'].to_i))
   main(false, @offset += 1)
 end
 
@@ -166,12 +168,13 @@ def main(is_first_time, offset)
 end
 
 load_env
+set_env
 
 if @loop
   until @success
     puts '!!! 無限執行模式 !!!'
     main(true, @offset)
-    sleep_for_a_while(rand(6..10))
+    sleep_for_a_while(rand(ENV['SLEEPMIN'].to_i..ENV['SLEEPMAX'].to_i))
   end
 else
   puts '--- 單次執行模式 ---'
