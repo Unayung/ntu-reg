@@ -12,6 +12,7 @@ require 'yaml'
 def sleep_for_a_while(sec)
   puts "休息 #{sec} 秒..."
   sleep(sec)
+  puts ''
 end
 
 def load_env
