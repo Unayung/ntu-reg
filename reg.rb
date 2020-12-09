@@ -137,12 +137,19 @@ def reg_info
   puts "醫師: #{@session.find('#ShowDt').text}"
 end
 
+def doctor_info
+  dept = @session.find('#DeptNameLabel').text
+  doctor = @session.find('#DoctorNameLabel').text
+  puts "嘗試掛號　: #{dept} #{doctor}"
+end
+
 def main(is_first_time, offset)
   if is_first_time
     initialize_services
     basic_info
   end
   go_to_doctor_page
+  doctor_info
   table_links = @session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_GridViewDoctorServiceList').all('a', text: '掛號')
   if table_links.size.positive? && offset < table_links.size
     link = table_links[offset]
