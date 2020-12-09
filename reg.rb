@@ -9,8 +9,7 @@ require 'pry-byebug'
 require 'two_captcha'
 require 'yaml'
 
-def sleep_for_a_while
-  sec = rand(5..10)
+def sleep_for_a_while(sec)
   puts "休息 #{sec} 秒..."
   sleep(sec)
 end
@@ -24,8 +23,11 @@ def load_env
   end
   @headless     = ENV['HEADLESS'] == 'true'
   @auto         = ENV['AUTO'] == 'true'
+  @loop         = ENV['LOOP'] == 'true'
   @tg_bot_token = ENV['TGBOTTOKEN']
   @channel_id   = ENV['TGCHANNELID']
+  @offset  = 0
+  @success = false
 end
 
 def send_tg_message(msg)
@@ -106,7 +108,7 @@ end
 
 def deal_with_error
   puts '掛號失敗，嘗試下一個可掛號時段'
-  sleep_for_a_while
+  sleep_for_a_while(rand(6..10))
   main(false, @offset += 1)
 end
 
@@ -134,7 +136,6 @@ end
 
 def main(is_first_time, offset)
   if is_first_time
-    load_env
     initialize_services
     basic_info
   end
@@ -163,15 +164,13 @@ def main(is_first_time, offset)
   end
 end
 
-@offset  = 0
-@success = false
-@loop    = ENV['LOOP'] == 'true'
+load_env
 
 if @loop
   until @success
     puts '!!! 無限執行模式 !!!'
     main(true, @offset)
-    sleep_for_a_while
+    sleep_for_a_while(rand(6..10))
   end
 else
   puts '--- 單次執行模式 ---'
