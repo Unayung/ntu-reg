@@ -20,6 +20,7 @@ def load_env
   config = YAML.safe_load(File.read('.env'))
   config.each do |k, v|
     ENV[k] = v.to_s
+    puts "ENV['#{k}']: #{v.to_s}"
   end
   @headless     = ENV['HEADLESS'] == 'true'
   @auto         = ENV['AUTO'] == 'true'
