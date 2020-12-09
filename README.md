@@ -15,6 +15,8 @@
  - Telegram Bot Token TGBOTTOKEN: 123123123123123
  - Telegram Channel ID TGCHANNELID: -123123123123123
  - 是否無限嘗試 LOOP: true / false
+ - 最小休息秒數 SLEEPMIN: 6 (不建議小於三秒，有可能被 ban ip)
+ - 最大休息秒數 SLEEPMAX: 12
 ---
 # 4834079 馬一心
 # 4441850 蔡紫薰
