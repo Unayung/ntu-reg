@@ -139,9 +139,13 @@ def reg_info
 end
 
 def doctor_info
-  dept = @session.find('#DeptNameLabel').text
-  doctor = @session.find('#DoctorNameLabel').text
-  puts "嘗試掛號　: #{dept} #{doctor}"
+  if @session.has_selector?('#DoctorNameLabel') && @session.find('#DoctorNameLabel').text != ''
+    dept = @session.find('#DeptNameLabel').text
+    doctor = @session.find('#DoctorNameLabel').text
+    puts "嘗試掛號　: #{dept} #{doctor}"
+  else
+    abort(@session.find('#DoctorServiceListInSeveralDaysTemplateIDSE_LabelMessage').text)
+  end
 end
 
 def main(is_first_time, offset)
